@@ -25,39 +25,14 @@ def get_fit(x, y, model : lf.Model, params=None, report=True, **kwargs):
     if report:
         print(fit.fit_report(show_correl=False))
     return fit
-    
-"""
-fig, ax = plt.subplots()
-ax.plot(gs.v_g, 0.3/gs.i_ds)
-ax.set_xlabel('Gate voltage (V)')
-ax.set_ylabel('0.3/Drain current (A)')
-ax.set_title('Gate sweep')
-ax.grid()
-fig.tight_layout()
-fig.show()
-"""
-
-"""
-fig3d = plt.figure()
-ax3d = fig3d.add_subplot(111, projection='3d')
-ax3d.plot(gs.v_g, gs.i_ds, gs.r)
-ax3d.set_xlabel('Gate voltage (V)')
-ax3d.set_ylabel('Drain current (A)')
-ax3d.set_zlabel('Resistance (Ohm)')
-ax3d.set_title('Gate sweep')
-fig3d.tight_layout()
-fig3d.show()
-"""
 
 
 if __name__ == '__main__':
-    WL = 5/2 # Width / Length
-    # Con esto se calcula la sheet resistance usando IV
     gs = pd.read_csv('data\gate sweeps\gate_sweep_50v.csv')
     len_s = len(gs) // 2
-    x_s = gs.v_g[:len_s]
+    x_s = gs.v_g[:len_s].sort_values(ignore_index=True)
     y_s = gs.r[:len_s]
-    x_b = gs.v_g[len_s:].reset_index(drop=True)
+    x_b = gs.v_g[len_s:].reset_index(drop=True).sort_values(ignore_index=True, ascending=False)
     y_b = gs.r[len_s:].reset_index(drop=True)
 
     Gaussian = lf.models.GaussianModel()
@@ -85,6 +60,7 @@ if __name__ == '__main__':
     ax.set_ylabel(r'Resistance [$\Omega$]')
     ax.set_title('Voltaje de subida')
     # ax.legend()
+    fig.tight_layout()
     fig.show()
 
     # Transconductancia
@@ -107,7 +83,24 @@ if __name__ == '__main__':
     fig3.tight_layout()
     fig3.show()
 
+    WL = 5/2                    # Width / Length
     R_ch = 1 / linear_fit.params['slope'].value
     R_s = WL * R_ch
     
-    C_g = epsilon_0 * 3.9
+    C_g = epsilon_0 * 3.9 / 1   # dividido en el grosor del óxido de silicio
+    g_m = np.diff(0.3/gauss_fit.best_fit) / np.diff(x_s)
+    mu = g_m / (WL * 0.3 * C_g)
+
+
+
+"""
+fig3d = plt.figure()
+ax3d = fig3d.add_subplot(111, projection='3d')
+ax3d.plot(gs.v_g, gs.i_ds, gs.r)
+ax3d.set_xlabel('Gate voltage (V)')
+ax3d.set_ylabel('Drain current (A)')
+ax3d.set_zlabel('Resistance (Ohm)')
+ax3d.set_title('Gate sweep')
+fig3d.tight_layout()
+fig3d.show()
+"""
