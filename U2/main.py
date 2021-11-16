@@ -23,48 +23,86 @@ def get_fit(x, y, model : lf.Model, params=None, report=True, **kwargs):
         params = model.guess(y, x=x)
     fit = model.fit(y, params, x=x, **kwargs)
     if report:
-        print(fit.fit_report(show_correl=False))
+        print(fit.fit_report(
+            show_correl=False,
+            ))
     return fit
 
 
 if __name__ == '__main__':
     gs = pd.read_csv('data\gate sweeps\gate_sweep_50v.csv')
     len_s = len(gs) // 2
-    x_s = gs.v_g[:len_s].sort_values(ignore_index=True)
-    y_s = gs.r[:len_s]
-    x_b = gs.v_g[len_s:].reset_index(drop=True).sort_values(ignore_index=True, ascending=False)
-    y_b = gs.r[len_s:].reset_index(drop=True)
+    gs_s = gs[:len_s].sort_values('v_g', ignore_index=True)
+    gs_b = gs[len_s:].sort_values('v_g', ignore_index=True, ascending=False)
+    x_s, y_s = gs_s.v_g, gs_s.r
+    x_b, y_b = gs_b.v_g, gs_b.r
+    I_s, I_b = gs_s.i_ds, gs_b.i_ds
 
     Gaussian = lf.models.GaussianModel()
     Cauchy = lf.models.LorentzianModel()
-    Exp = lf.models.ExponentialModel()
+    Exp = lf.models.ExponentialModel()      # no se usa
 
+
+    # Subida
     gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
     cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
-    exp_params = Exp.make_params(amplitude=313, center=0, decay=-40.52)
+    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
 
     gauss_fit = get_fit(x_s, y_s, Gaussian, gauss_params)
     cauchy_fit = get_fit(x_s, y_s, Cauchy, cauchy_params)
-    exp_fit = get_fit(x_b, y_b, Exp, exp_params)
+    # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
 
     fig, ax = plt.subplots()
     data_kws = dict(ms=2)
-    #gauss_fit.plot_fit(ax=ax, datafmt='o', fitfmt='-', data_kws=data_kws)
-    #cauchy_fit.plot_fit(ax=ax, datafmt='o', fitfmt='-', data_kws=data_kws)
-    ax.plot(x_s, y_s, 'o', ms=2, label='Data')
-    ax.plot(x_b, y_b, 'o', ms=2, label='Data')
-    ax.plot(x_s, gauss_fit.init_fit, '-', label='Gaussian fit')
-    ax.plot(x_s, cauchy_fit.init_fit, '-', label='Cauchy fit')
-    ax.plot(x_b, exp_fit.init_fit, '-', label='Exponential fit')
+
+    ax.plot(x_s, y_s, 'o', ms=2, label='Upsweep')
+    ax.plot(x_s, gauss_fit.best_fit, '-', label='Gaussian fit')
+    ax.plot(x_s, cauchy_fit.best_fit, '-', label='Cauchy fit')
+    gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
+    cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
+    # ax.fill_between(x_s, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
+    # ax.fill_between(x_s, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
+
     ax.set_xlabel('Gate voltage [V]')
     ax.set_ylabel(r'Resistance [$\Omega$]')
     ax.set_title('Voltaje de subida')
-    # ax.legend()
+    ax.grid()
+    ax.legend()
     fig.tight_layout()
     fig.show()
 
-    # Transconductancia
 
+    # Bajada
+    gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
+    cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
+    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
+
+    gauss_fit = get_fit(x_b, y_b, Gaussian, gauss_params)
+    cauchy_fit = get_fit(x_b, y_b, Cauchy, cauchy_params)
+    # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
+
+    fig2, ax2 = plt.subplots()
+    data_kws = dict(ms=2)
+
+    ax2.plot(x_b, y_b, 'o', ms=2, label='Downsweep')
+    ax2.plot(x_b, gauss_fit.best_fit, '-', label='Gaussian fit')
+    ax2.plot(x_b, cauchy_fit.best_fit, '-', label='Cauchy fit')
+    gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
+    cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
+    # ax2.fill_between(x_b, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
+    # ax2.fill_between(x_b, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
+
+    ax2.set_xlabel('Gate voltage [V]')
+    ax2.set_ylabel(r'Resistance [$\Omega$]')
+    ax2.set_title('Voltaje de bajada')
+    ax2.grid()
+    ax2.legend()
+    fig2.tight_layout()
+    fig2.show()
+
+
+    # Transconductancia
+    
     IV_s = pd.read_csv('data\IV\IV_(IV-II)_(c_f)_subida.csv', header=9)
     IV_b = pd.read_csv('data\IV\IV_(IV-II)_(c_f)_bajada.csv', header=9)
 
@@ -72,8 +110,8 @@ if __name__ == '__main__':
     linear_fit = get_fit(IV_s['Voltage [V]'], IV_s['Current [A]'], Linear)
 
     fig3, ax3 = plt.subplots()
-    ax3.plot(IV_s['Voltage [V]'], IV_s['Current [A]'], label='Subida')
-    ax3.plot(IV_b['Voltage [V]'], IV_b['Current [A]'], label='Bajada')
+    ax3.plot(IV_s['Voltage [V]'], IV_s['Current [A]'], 'o', ms=3, label='Upsweep')
+    # ax3.plot(IV_b['Voltage [V]'], IV_b['Current [A]'], label='Bajada')
     ax3.plot(IV_s['Voltage [V]'], linear_fit.best_fit, label='Linear fit')
     ax3.set_xlabel('Gate voltage [V]')
     ax3.set_ylabel('Drain current [A]')
@@ -87,10 +125,10 @@ if __name__ == '__main__':
     R_ch = 1 / linear_fit.params['slope'].value
     R_s = WL * R_ch
     
-    C_g = epsilon_0 * 3.9 / 1   # dividido en el grosor del óxido de silicio
-    g_m = np.diff(0.3/gauss_fit.best_fit) / np.diff(x_s)
+    C_g = epsilon_0 * 3.9 / 90e-9
+    g_m = - (np.diff(I_s) / np.diff(x_s)).mean()
     mu = g_m / (WL * 0.3 * C_g)
-
+    print(f'R_s = {R_s:.2f} [Ohm]')
 
 
 """
