@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import lmfit as lf
 from scipy.constants import epsilon_0
+# from own.timer import timeit
 
 # Gráficos: columnas: gauss, cauchy | filas: subida, bajada, juntas
 
-def get_fit(x, y, model : lf.Model, params=None, report=True, **kwargs):
+def get_fit(x, y, model : lf.Model, params=None, print_report=False, **kwargs):
     """
     x: array-like
         datos del eje x
@@ -22,10 +23,11 @@ def get_fit(x, y, model : lf.Model, params=None, report=True, **kwargs):
     if params is None:
         params = model.guess(y, x=x)
     fit = model.fit(y, params, x=x, **kwargs)
-    if report:
+    if print_report:
         print(fit.fit_report(
             show_correl=False,
             ))
+    print(fit.model, fit.best_values)
     return fit
 
 
@@ -53,8 +55,6 @@ if __name__ == '__main__':
     # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
 
     fig, ax = plt.subplots()
-    data_kws = dict(ms=2)
-
     ax.plot(x_s, y_s, 'o', ms=2, label='Upsweep')
     ax.plot(x_s, gauss_fit.best_fit, '-', label='Gaussian fit')
     ax.plot(x_s, cauchy_fit.best_fit, '-', label='Cauchy fit')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     ax.set_xlabel('Gate voltage [V]')
     ax.set_ylabel(r'Resistance [$\Omega$]')
-    ax.set_title('Voltaje de subida')
+    ax.set_title('IV-II GFET Gate sweep')
     ax.grid()
     ax.legend()
     fig.tight_layout()
@@ -81,25 +81,49 @@ if __name__ == '__main__':
     cauchy_fit = get_fit(x_b, y_b, Cauchy, cauchy_params)
     # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
 
-    fig2, ax2 = plt.subplots()
-    data_kws = dict(ms=2)
-
-    ax2.plot(x_b, y_b, 'o', ms=2, label='Downsweep')
-    ax2.plot(x_b, gauss_fit.best_fit, '-', label='Gaussian fit')
-    ax2.plot(x_b, cauchy_fit.best_fit, '-', label='Cauchy fit')
+    fig, ax = plt.subplots()
+    ax.plot(x_b, y_b, 'o', ms=2, label='Downsweep')
+    ax.plot(x_b, gauss_fit.best_fit, '-', label='Gaussian fit')
+    ax.plot(x_b, cauchy_fit.best_fit, '-', label='Cauchy fit')
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
-    # ax2.fill_between(x_b, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
-    # ax2.fill_between(x_b, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
+    # ax.fill_between(x_b, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
+    # ax.fill_between(x_b, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
 
-    ax2.set_xlabel('Gate voltage [V]')
-    ax2.set_ylabel(r'Resistance [$\Omega$]')
-    ax2.set_title('Voltaje de bajada')
-    ax2.grid()
-    ax2.legend()
-    fig2.tight_layout()
-    fig2.show()
+    ax.set_xlabel('Gate voltage [V]')
+    ax.set_ylabel(r'Resistance [$\Omega$]')
+    ax.set_title('IV-II GFET Gate sweep')
+    ax.grid()
+    ax.legend()
+    fig.tight_layout()
+    fig.show()
 
+
+    # Subida y bajada
+    gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
+    cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
+    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
+
+    gauss_fit = get_fit(gs.v_g, gs.r, Gaussian, gauss_params)
+    cauchy_fit = get_fit(gs.v_g, gs.r, Cauchy, cauchy_params)
+
+    fig, ax = plt.subplots()
+    ax.plot(gs.v_g, gs.r, 'o', ms=2, label='Full Gate sweep')
+    ax.plot(gs.v_g, gauss_fit.best_fit, '-', label='Gaussian fit')
+    ax.plot(gs.v_g, cauchy_fit.best_fit, '-', label='Cauchy fit')
+    gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
+    cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
+    # ax.fill_between(gs.v_g, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
+    # ax.fill_between(gs.v_g, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
+
+    ax.set_xlabel('Gate voltage [V]')
+    ax.set_ylabel(r'Resistance [$\Omega$]')
+    ax.set_title('IV-II GFET Gate sweep')
+    ax.grid()
+    ax.legend()
+    fig.tight_layout()
+    fig.show()
+    
 
     # Transconductancia
     
@@ -115,7 +139,7 @@ if __name__ == '__main__':
     ax3.plot(IV_s['Voltage [V]'], linear_fit.best_fit, label='Linear fit')
     ax3.set_xlabel('Gate voltage [V]')
     ax3.set_ylabel('Drain current [A]')
-    ax3.set_title('IV')
+    ax3.set_title('IV-II sheet Resistance')
     ax3.grid()
     ax3.legend()
     fig3.tight_layout()
