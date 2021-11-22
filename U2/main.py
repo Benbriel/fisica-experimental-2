@@ -7,7 +7,7 @@ from scipy.constants import epsilon_0
 
 # Gráficos: columnas: gauss, cauchy | filas: subida, bajada, juntas
 
-def get_fit(x, y, model : lf.Model, params=None, print_report=False, **kwargs):
+def get_fit(x, y, model : lf.Model, params : dict, print_report=False, **kwargs):
     """
     x: array-like
         datos del eje x
@@ -20,9 +20,11 @@ def get_fit(x, y, model : lf.Model, params=None, print_report=False, **kwargs):
     kwargs: dict
         parámetros adicionales para la función lmfit.Model.fit
     """
-    if params is None:
-        params = model.guess(y, x=x)
-    fit = model.fit(y, params, x=x, **kwargs)
+    if not params:
+        lf_params = model.guess(y, x=x)
+    else:
+        lf_params = model.make_params(**params)
+    fit = model.fit(y, lf_params, x=x, **kwargs)
     if print_report:
         print(fit.fit_report(
             show_correl=False,
@@ -43,12 +45,13 @@ if __name__ == '__main__':
     Gaussian = lf.models.GaussianModel()
     Cauchy = lf.models.LorentzianModel()
     Exp = lf.models.ExponentialModel()      # no se usa
+    Moffat = lf.models.MoffatModel()        # tampoco
 
 
     # Subida
-    gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
-    cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
-    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
+    gauss_params = dict(amplitude=136_579, center=79, sigma=62)
+    cauchy_params = dict(amplitude=145_404, center=58, sigma=58)
+    exp_params = dict(amplitude=353, center=0, decay=-60.52)
 
     gauss_fit = get_fit(x_s, y_s, Gaussian, gauss_params)
     cauchy_fit = get_fit(x_s, y_s, Cauchy, cauchy_params)
@@ -56,7 +59,7 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots(figsize=(4*4/3, 4))
     ax.plot(x_s, y_s, 'o', ms=2, label='Voltaje de subida')
-    ax.plot(x_s, gauss_fit.best_fit, '-', label='Ajuste Gaussiana')
+    ax.plot(x_s, gauss_fit.best_fit, '-', label='Ajuste Gauss')
     ax.plot(x_s, cauchy_fit.best_fit, '-', label='Ajuste Cauchy')
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
@@ -74,18 +77,20 @@ if __name__ == '__main__':
 
 
     # Bajada
-    gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
-    cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
-    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
+    gauss_params = dict(amplitude=7e18, center=4030, sigma=516)
+    cauchy_params = dict(amplitude=29475001, center=160, sigma=0.9)
+    moffat_params = dict(amplitude=353, center=70, sigma=60)
 
     gauss_fit = get_fit(x_b, y_b, Gaussian, gauss_params)
     cauchy_fit = get_fit(x_b, y_b, Cauchy, cauchy_params)
-    # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
+    moffat_fit = get_fit(np.asarray(x_b), np.asarray(y_b), Moffat, {})
 
     fig, ax = plt.subplots(figsize=(4*4/3, 4))
     ax.plot(x_b, y_b, 'o', ms=2, label='Voltaje de bajada')
-    ax.plot(x_b, gauss_fit.best_fit, '-', label='Ajuste Gaussiana')
+    ax.plot(x_b, gauss_fit.best_fit, '-', label='Ajuste Gauss')
     ax.plot(x_b, cauchy_fit.best_fit, '-', label='Ajuste Cauchy')
+    ax.plot(x_b, moffat_fit.best_fit, '-', label='Ajuste Moffat')
+    
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
     # ax.fill_between(x_b, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
@@ -102,17 +107,19 @@ if __name__ == '__main__':
 
 
     # Subida y bajada
-    gauss_params = Gaussian.make_params(amplitude=136_579, center=79, sigma=62)
-    cauchy_params = Cauchy.make_params(amplitude=145_404, center=58, sigma=58)
-    exp_params = Exp.make_params(amplitude=353, center=0, decay=-60.52)
+    gauss_params = dict(amplitude=986744960062498, center=3040, sigma=462)
+    cauchy_params = dict(amplitude=3682044, center=170, sigma=9)
+    exp_params = dict(amplitude=353, center=0, decay=-60.52)
 
     gauss_fit = get_fit(gs.v_g, gs.r, Gaussian, gauss_params)
     cauchy_fit = get_fit(gs.v_g, gs.r, Cauchy, cauchy_params)
+    moffat_fit = get_fit(np.asarray(gs.v_g), np.asarray(gs.r), Moffat, {})
 
     fig, ax = plt.subplots(figsize=(4*4/3, 4))
     ax.plot(gs.v_g, gs.r, 'o', ms=2, label='Gate sweep')
-    ax.plot(gs.v_g, gauss_fit.best_fit, '-', label='Ajuste Gaussiana')
+    ax.plot(gs.v_g, gauss_fit.best_fit, '-', label='Ajuste Gauss')
     ax.plot(gs.v_g, cauchy_fit.best_fit, '-', label='Ajuste Cauchy')
+    ax.plot(gs.v_g, moffat_fit.best_fit, '-', label='Ajuste Moffat')
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
     # ax.fill_between(gs.v_g, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
@@ -135,7 +142,7 @@ if __name__ == '__main__':
     IV = IV_s.append(IV_b)
 
     Linear = lf.models.LinearModel()
-    linear_fit = get_fit(IV['Voltage [V]'], IV['Current [A]'], Linear)
+    linear_fit = get_fit(IV['Voltage [V]'], IV['Current [A]'], Linear, {})
 
     fig3, ax3 = plt.subplots(figsize=(4*4/3, 4))
     ax3.plot(IV['Voltage [V]'], IV['Current [A]'], 'o', ms=3, label='Datos')
