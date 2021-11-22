@@ -3,9 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import lmfit as lf
 from scipy.constants import epsilon_0
-# from own.timer import timeit
 
-# Gráficos: columnas: gauss, cauchy | filas: subida, bajada, juntas
 
 def get_fit(x, y, model : lf.Model, params : dict, print_report=False, **kwargs):
     """
@@ -44,8 +42,7 @@ if __name__ == '__main__':
 
     Gaussian = lf.models.GaussianModel()
     Cauchy = lf.models.LorentzianModel()
-    Exp = lf.models.ExponentialModel()      # no se usa
-    Moffat = lf.models.MoffatModel()        # tampoco
+    Moffat = lf.models.MoffatModel()
 
 
     # Subida
@@ -55,7 +52,6 @@ if __name__ == '__main__':
 
     gauss_fit = get_fit(x_s, y_s, Gaussian, gauss_params)
     cauchy_fit = get_fit(x_s, y_s, Cauchy, cauchy_params)
-    # exp_fit = get_fit(x_b, y_b, Exp, exp_params)
 
     fig, ax = plt.subplots(figsize=(4*4/3, 4))
     ax.plot(x_s, y_s, 'o', ms=2, label='Voltaje de subida')
@@ -63,12 +59,9 @@ if __name__ == '__main__':
     ax.plot(x_s, cauchy_fit.best_fit, '-', label='Ajuste Cauchy')
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
-    # ax.fill_between(x_s, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
-    # ax.fill_between(x_s, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
 
     ax.set_xlabel(r'$V_{G}$ [V]')
     ax.set_ylabel(r'$R$ [$\Omega$]')
-    # ax.set_title('IV-II GFET Gate sweep')
     ax.grid()
     ax.legend()
     fig.tight_layout()
@@ -93,12 +86,9 @@ if __name__ == '__main__':
     
     gauss_dev = gauss_fit.eval_uncertainty(sigma=3)
     cauchy_dev = cauchy_fit.eval_uncertainty(sigma=3)
-    # ax.fill_between(x_b, gauss_fit.best_fit - gauss_dev, gauss_fit.best_fit + gauss_dev, alpha=0.5, label='Gaussian fit error')
-    # ax.fill_between(x_b, cauchy_fit.best_fit - cauchy_dev, cauchy_fit.best_fit + cauchy_dev, alpha=0.5, label='Cauchy fit error')
 
     ax.set_xlabel(r'$V_{G}$ [V]')
     ax.set_ylabel(r'$R$ [$\Omega$]')
-    # ax.set_title('IV-II GFET Gate sweep')
     ax.grid()
     ax.legend()
     fig.tight_layout()
@@ -127,7 +117,6 @@ if __name__ == '__main__':
 
     ax.set_xlabel(r'$V_{G}$ [V]')
     ax.set_ylabel(r'$R$ [$\Omega$]')
-    # ax.set_title('IV-II GFET Gate sweep')
     ax.grid()
     ax.legend()
     fig.tight_layout()
@@ -136,7 +125,6 @@ if __name__ == '__main__':
     
 
     # Transconductancia
-    
     IV_s = pd.read_csv('data\IV\IV_(IV-II)_(c_f)_subida.csv', header=9)
     IV_b = pd.read_csv('data\IV\IV_(IV-II)_(c_f)_bajada.csv', header=9)
     IV = IV_s.append(IV_b)
@@ -149,7 +137,6 @@ if __name__ == '__main__':
     ax3.plot(IV['Voltage [V]'], linear_fit.best_fit, label='Ajuste lineal')
     ax3.set_xlabel(r'$V_{DS}$ [V]')
     ax3.set_ylabel(r'$I_{DS}$ [A]')
-    # ax3.set_title('IV-II sheet Resistance')
     ax3.grid()
     ax3.legend()
     fig3.tight_layout()
